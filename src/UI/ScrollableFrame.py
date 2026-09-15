@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from CustomUI.AutoScrollbar import AutoScrollbar
+from UI.AutoScrollbar import AutoScrollbar
 
 
 class ScrollableFrame(ttk.Frame):
@@ -75,3 +75,4 @@ class ScrollableFrame(ttk.Frame):
     def _on_linux_scroll_down(self, _event):
         if self._pointer_inside():
             self.canvas.yview_scroll(1, "units")
+
