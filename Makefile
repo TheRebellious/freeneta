@@ -28,7 +28,7 @@ build:
 compile: build
 
 # Remove PyInstaller output
-clean:
+clean: clean-cache
 	-$(PYTHON) -c "import shutil; shutil.rmtree('$(DIST)', ignore_errors=True)"
 	-$(PYTHON) -c "import shutil; shutil.rmtree('$(BUILD)', ignore_errors=True)"
 	-$(PYTHON) -c "import os; os.remove('$(APP).spec') if os.path.exists('$(APP).spec') else None"
