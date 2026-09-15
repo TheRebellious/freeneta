@@ -1,0 +1,172 @@
+@startuml FreeNeta
+
+title FreeNeta - Class Diagram
+
+skinparam classAttributeIconSize 0
+
+' =========================================================
+' Application
+' =========================================================
+
+class FreenetaApplication {
+    - root: Tk
+    - window: MainWindow
+    - profinet: ProfinetService
+    - vendor: VendorService
+    - ping: PingMonitor
+    - network: NetworkService
+    - connection: ConnectionService
+
+    + run()
+    + shutdown()
+}
+
+' =========================================================
+' Domain / Model
+' =========================================================
+
+class Device {
+    + name_of_station: str
+    + mac: str
+    + ip: str
+    + netmask: str
+    + gateway: str
+    + family: str
+    + dcp_access: str
+    + vendor: str
+    + ping_status: str
+    + ping_ms: str
+}
+
+' =========================================================
+' Services
+' =========================================================
+
+class ProfinetService {
+    - host_ip: str
+
+    + discover_devices(): List<Device>
+    + set_ip(device: Device, ip: str, netmask: str, gateway: str)
+    + set_name(device: Device, name: str)
+    + reset_communication(device: Device)
+
+    - _get_dcp()
+    - _parse_raw_dcp_response()
+    - _determine_dcp_access()
+}
+
+class NetworkService {
+    + get_interfaces(): List
+    + get_interface_by_ip(ip: str)
+}
+
+class VendorService {
+    - cache: Dict
+
+    + get_vendor(mac: str): str
+    + lookup(mac: str): str
+}
+
+class PingMonitor {
+    - running: bool
+    - stop_event: Event
+
+    + start(devices: List<Device>)
+    + stop()
+    + ping(device: Device)
+}
+
+class ConnectionService {
+    + scan_ports(device: Device)
+    + open_http(device: Device)
+    + open_https(device: Device)
+    + open_ssh(device: Device)
+}
+
+' =========================================================
+' UI
+' =========================================================
+
+class MainWindow {
+    - root: Tk
+    - device_table: DeviceTable
+    - topology: TopologyView
+    - dialogs: DialogManager
+
+    + show()
+    + update_devices(devices: List<Device>)
+    + update_status(message: str)
+}
+
+class DeviceTable {
+    - tree: Treeview
+    - devices: List<Device>
+
+    + set_devices(devices: List<Device>)
+    + get_selected_device(): Device
+    + refresh()
+}
+
+class TopologyView {
+    - canvas: Canvas
+
+    + draw(devices: List<Device>)
+    + clear()
+}
+
+class DialogManager {
+    + ask_for_ip()
+    + ask_for_name()
+    + show_device_details(device: Device)
+    + show_error(message: str)
+}
+
+' =========================================================
+' Custom Widgets
+' =========================================================
+
+class ScrollableFrame {
+    - canvas: Canvas
+    - content: Frame
+
+    + scroll()
+}
+
+class HorizontalScrollableFrame {
+    - canvas: Canvas
+    - content: Frame
+
+    + scroll()
+}
+
+class AutoScrollbar {
+    + set(first, last)
+}
+
+' =========================================================
+' Relationships
+' =========================================================
+
+FreenetaApplication *-- MainWindow
+FreenetaApplication *-- ProfinetService
+FreenetaApplication *-- NetworkService
+FreenetaApplication *-- VendorService
+FreenetaApplication *-- PingMonitor
+FreenetaApplication *-- ConnectionService
+
+MainWindow *-- DeviceTable
+MainWindow *-- TopologyView
+MainWindow *-- DialogManager
+
+DeviceTable o-- "0..*" Device
+TopologyView ..> Device
+
+ProfinetService ..> Device
+VendorService ..> Device
+PingMonitor ..> Device
+ConnectionService ..> Device
+
+ScrollableFrame <|-- HorizontalScrollableFrame
+DeviceTable ..> ScrollableFrame
+
+@enduml
