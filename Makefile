@@ -3,7 +3,7 @@ PIP := $(PYTHON) -m pip
 PYINSTALLER := $(PYTHON) -m PyInstaller
 
 APP := freeneta
-MAIN := freeneta.py
+MAIN := src/freeneta.py
 
 DIST := dist
 BUILD := build

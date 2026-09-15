@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
-from CustomUI.AutoScrollbar import AutoScrollbar
+from UI.AutoScrollbar import AutoScrollbar
 
 
 class HorizontalScrollableFrame(ttk.Frame):
@@ -71,3 +71,4 @@ class HorizontalScrollableFrame(ttk.Frame):
     def _on_shift_mousewheel(self, event):
         if self._pointer_inside() and event.delta:
             self.canvas.xview_scroll(int(-event.delta / 120), "units")
+
