@@ -15,7 +15,7 @@ LOCAL_OUI_FALLBACKS = {
     "3C39E7": "Rockwell Automation",
 }
 
-APP_NOTES = """FreeNeta – v1.5
+APP_NOTES = """FreeNeta – v1.6
 
 Features:
 - Discover PROFINET devices using DCP
@@ -27,10 +27,17 @@ Features:
 - Set device IP address
 - Set station name
 - Reset communication parameters to factory defaults (PROFINET DCP Reset)
-- Quick-connect actions based on detected ports
-- Open device Web GUI via HTTP
-- Open device Web GUI via HTTPS
+- Quick‑connect actions based on detected ports
+- Open device Web GUI via HTTP/HTTPS
 - Start an SSH session to the device
+- Dark mode support
+- Adjustable UI layout with hideable topology and notes panels
+- Export device list to CSV
+- Show selected device details
+
+Refactoring:
+- Extensive internal code cleanup and modularization
+- Improved performance and test coverage
 
 Vendor lookup note:
 - Uses local cache and an online OUI lookup fallback
