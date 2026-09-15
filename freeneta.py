@@ -1,4 +1,3 @@
-import json
 import platform
 import shutil
 import socket
@@ -11,10 +10,16 @@ import urllib.request
 import webbrowser
 import socket
 import psutil
-from dataclasses import dataclass, field
 from tkinter import ttk, messagebox, simpledialog
 import tkinter.font as tkfont
 from typing import Dict, List, Optional
+
+from CustomUI.ScrollableFrame import ScrollableFrame
+from CustomUI.HorizontalScrollableFrame import HorizontalScrollableFrame
+from CustomUI.AutoScrollbar import AutoScrollbar
+
+from Dataclasses.DeviceRow import DeviceRow
+
 
 try:
     from scapy.all import load_contrib, sniff, conf, Ether
@@ -37,163 +42,6 @@ DCP_SERVICE_ID_IDENTIFY = 0x05
 DCP_RESPONSE = 0x01
 PROFINET_ETHERTYPE = 0x8892
 SNIFF_EXTRA_SECONDS = 2
-
-
-class AutoScrollbar(ttk.Scrollbar):
-    def set(self, first, last):
-        first = float(first)
-        last = float(last)
-        if first <= 0.0 and last >= 1.0:
-            if self.winfo_ismapped():
-                self.grid_remove()
-        else:
-            if not self.winfo_ismapped():
-                self.grid()
-        super().set(first, last)
-
-
-class ScrollableFrame(ttk.Frame):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
-        self.v_scrollbar = AutoScrollbar(self, orient="vertical", command=self.canvas.yview)
-        self.canvas.configure(yscrollcommand=self.v_scrollbar.set)
-
-        self.content = ttk.Frame(self.canvas)
-        self.window_id = self.canvas.create_window((0, 0), window=self.content, anchor="nw")
-
-        self.canvas.grid(row=0, column=0, sticky="nsew")
-        self.v_scrollbar.grid(row=0, column=1, sticky="ns")
-        self.v_scrollbar.grid_remove()
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
-
-        self.content.bind("<Configure>", self._on_content_configure)
-        self.canvas.bind("<Configure>", self._on_canvas_configure)
-        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel, add="+")
-        self.canvas.bind_all("<Button-4>", self._on_linux_scroll_up, add="+")
-        self.canvas.bind_all("<Button-5>", self._on_linux_scroll_down, add="+")
-
-    def _on_content_configure(self, _event=None):
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        self.after_idle(self._update_scrollbar_visibility)
-
-    def _on_canvas_configure(self, event):
-        self.canvas.itemconfigure(self.window_id, width=event.width)
-        self.update_idletasks()
-        content_height = self.content.winfo_reqheight()
-        self.canvas.itemconfigure(self.window_id, height=max(event.height, content_height))
-        self.after_idle(self._update_scrollbar_visibility)
-
-    def _update_scrollbar_visibility(self):
-        bbox = self.canvas.bbox("all")
-        if not bbox:
-            self.v_scrollbar.grid_remove()
-            return
-        _, _, _, content_height = bbox
-        canvas_height = max(self.canvas.winfo_height(), 1)
-        if content_height <= canvas_height:
-            self.v_scrollbar.grid_remove()
-            self.canvas.yview_moveto(0)
-        else:
-            self.v_scrollbar.grid()
-
-    def _pointer_inside(self):
-        widget = self.winfo_containing(self.winfo_pointerx(), self.winfo_pointery())
-        while widget is not None:
-            if widget == self.canvas:
-                return True
-            widget = widget.master
-        return False
-
-    def _on_mousewheel(self, event):
-        if not self._pointer_inside():
-            return
-        if event.delta:
-            self.canvas.yview_scroll(int(-event.delta / 120), "units")
-
-    def _on_linux_scroll_up(self, _event):
-        if self._pointer_inside():
-            self.canvas.yview_scroll(-1, "units")
-
-    def _on_linux_scroll_down(self, _event):
-        if self._pointer_inside():
-            self.canvas.yview_scroll(1, "units")
-
-
-class HorizontalScrollableFrame(ttk.Frame):
-    def __init__(self, parent, *args, **kwargs):
-        super().__init__(parent, *args, **kwargs)
-        self.canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0)
-        self.h_scrollbar = AutoScrollbar(self, orient="horizontal", command=self.canvas.xview)
-        self.canvas.configure(xscrollcommand=self.h_scrollbar.set)
-
-        self.content = ttk.Frame(self.canvas)
-        self.window_id = self.canvas.create_window((0, 0), window=self.content, anchor="nw")
-
-        self.canvas.grid(row=0, column=0, sticky="ew")
-        self.h_scrollbar.grid(row=1, column=0, sticky="ew")
-        self.h_scrollbar.grid_remove()
-        self.grid_columnconfigure(0, weight=1)
-
-        self.content.bind("<Configure>", self._on_content_configure)
-        self.canvas.bind("<Configure>", self._on_canvas_configure)
-        self.canvas.bind_all("<Shift-MouseWheel>", self._on_shift_mousewheel, add="+")
-
-    def _on_content_configure(self, _event=None):
-        req_width = max(self.content.winfo_reqwidth(), 1)
-        req_height = max(self.content.winfo_reqheight(), 1)
-        self.canvas.configure(height=req_height, scrollregion=(0, 0, req_width, req_height))
-        self.after_idle(self._update_scrollbar_visibility)
-
-    def _on_canvas_configure(self, event):
-        req_width = max(self.content.winfo_reqwidth(), 1)
-        req_height = max(self.content.winfo_reqheight(), 1)
-        overflow = req_width > max(event.width, 1)
-        self.canvas.itemconfigure(self.window_id, height=req_height)
-        self.canvas.itemconfigure(self.window_id, width=req_width if overflow else event.width)
-        self.canvas.configure(scrollregion=(0, 0, req_width, req_height))
-        self.after_idle(self._update_scrollbar_visibility)
-
-    def _update_scrollbar_visibility(self):
-        req_width = max(self.content.winfo_reqwidth(), 1)
-        canvas_width = max(self.canvas.winfo_width(), 1)
-        overflow_threshold = 8
-        if req_width <= canvas_width + overflow_threshold:
-            self.h_scrollbar.grid_remove()
-            self.canvas.xview_moveto(0)
-            self.canvas.itemconfigure(self.window_id, width=canvas_width)
-            self.canvas.configure(scrollregion=(0, 0, canvas_width, max(self.content.winfo_reqheight(), 1)))
-        else:
-            self.h_scrollbar.grid()
-            self.canvas.itemconfigure(self.window_id, width=req_width)
-            self.canvas.configure(scrollregion=(0, 0, req_width, max(self.content.winfo_reqheight(), 1)))
-
-    def _pointer_inside(self):
-        widget = self.winfo_containing(self.winfo_pointerx(), self.winfo_pointery())
-        while widget is not None:
-            if widget == self.canvas:
-                return True
-            widget = widget.master
-        return False
-
-    def _on_shift_mousewheel(self, event):
-        if self._pointer_inside() and event.delta:
-            self.canvas.xview_scroll(int(-event.delta / 120), "units")
-
-
-@dataclass
-class DeviceRow:
-    name_of_station: str
-    mac: str
-    ip: str
-    netmask: str
-    gateway: str
-    family: str
-    dcp_access: str = "unknown"
-    vendor: str = "Looking up..."
-    ping_status: str = "Unknown"
-    ping_ms: str = ""
 
 
 class Freeneta:
@@ -239,7 +87,6 @@ class Freeneta:
         self._init_fonts()
         self._build_ui()
         self.apply_theme()
-
 
     def _init_fonts(self) -> None:
         self.default_font = tkfont.nametofont("TkDefaultFont")
@@ -298,13 +145,15 @@ class Freeneta:
         self.top_scroller.grid(row=0, column=0, sticky="ew")
         top_bar = self.top_scroller.content
 
-        ttk.Label(top_bar, text="Host interface").grid(row=0, column=0, sticky="w", pady=4)
+        ttk.Label(top_bar, text="Host interface").grid(
+            row=0, column=0, sticky="w", pady=4)
 
         self.host_ip_var = tk.StringVar()
         self.host_interface_var = tk.StringVar()
         self.host_interfaces = self.get_host_interfaces()
 
-        interface_values = [f"{iface} ({ip})" for iface, ip in self.host_interfaces]
+        interface_values = [
+            f"{iface} ({ip})" for iface, ip in self.host_interfaces]
 
         self.interface_combo = ttk.Combobox(
             top_bar,
@@ -313,27 +162,37 @@ class Freeneta:
             state="readonly",
             width=34,
         )
-        self.interface_combo.grid(row=0, column=1, sticky="w", padx=(8, 8), pady=4)
-        self.interface_combo.bind("<<ComboboxSelected>>", self.on_interface_selected)
+        self.interface_combo.grid(
+            row=0, column=1, sticky="w", padx=(8, 8), pady=4)
+        self.interface_combo.bind(
+            "<<ComboboxSelected>>", self.on_interface_selected)
 
-        self.refresh_interfaces_btn = ttk.Button(top_bar, text="Refresh interfaces", command=self.refresh_interfaces_only)
-        self.refresh_interfaces_btn.grid(row=0, column=2, sticky="w", padx=(0, 16), pady=4)
+        self.refresh_interfaces_btn = ttk.Button(
+            top_bar, text="Refresh interfaces", command=self.refresh_interfaces_only)
+        self.refresh_interfaces_btn.grid(
+            row=0, column=2, sticky="w", padx=(0, 16), pady=4)
 
         self.refresh_host_interfaces(preserve_selection=False)
 
-        self.scan_btn = ttk.Button(top_bar, text="Scan", command=self.scan_devices)
+        self.scan_btn = ttk.Button(
+            top_bar, text="Scan", command=self.scan_devices)
         self.scan_btn.grid(row=0, column=3, sticky="w", pady=4)
 
-        self.refresh_btn = ttk.Button(top_bar, text="Refresh", command=self.scan_devices)
+        self.refresh_btn = ttk.Button(
+            top_bar, text="Refresh", command=self.scan_devices)
         self.refresh_btn.grid(row=0, column=4, sticky="w", padx=(8, 0), pady=4)
 
-        self.set_ip_btn = ttk.Button(top_bar, text="Set IP", command=self.set_ip_for_selected)
+        self.set_ip_btn = ttk.Button(
+            top_bar, text="Set IP", command=self.set_ip_for_selected)
         self.set_ip_btn.grid(row=0, column=5, sticky="w", padx=(18, 0), pady=4)
 
-        self.set_name_btn = ttk.Button(top_bar, text="Set Name", command=self.set_name_for_selected)
-        self.set_name_btn.grid(row=0, column=6, sticky="w", padx=(8, 0), pady=4)
+        self.set_name_btn = ttk.Button(
+            top_bar, text="Set Name", command=self.set_name_for_selected)
+        self.set_name_btn.grid(
+            row=0, column=6, sticky="w", padx=(8, 0), pady=4)
 
-        self.reset_btn = ttk.Button(top_bar, text="Reset Comm", command=self.reset_selected)
+        self.reset_btn = ttk.Button(
+            top_bar, text="Reset Comm", command=self.reset_selected)
         self.reset_btn.grid(row=0, column=7, sticky="w", padx=(8, 0), pady=4)
 
         self.monitor_chk = ttk.Checkbutton(
@@ -342,22 +201,28 @@ class Freeneta:
             variable=self.ping_monitor_var,
             command=self.toggle_ping_monitor,
         )
-        self.monitor_chk.grid(row=0, column=8, sticky="w", padx=(18, 0), pady=4)
+        self.monitor_chk.grid(row=0, column=8, sticky="w",
+                              padx=(18, 0), pady=4)
 
         self.view_button = ttk.Menubutton(top_bar, text="View")
-        self.view_button.grid(row=0, column=9, sticky="w", padx=(18, 0), pady=4)
+        self.view_button.grid(row=0, column=9, sticky="w",
+                              padx=(18, 0), pady=4)
         self.view_menu = tk.Menu(self.view_button, tearoff=False)
-        self.view_menu.add_checkbutton(label="Show topology", variable=self.show_topology_var, command=self.update_view_visibility)
-        self.view_menu.add_checkbutton(label="Show notes", variable=self.show_notes_var, command=self.update_view_visibility)
+        self.view_menu.add_checkbutton(
+            label="Show topology", variable=self.show_topology_var, command=self.update_view_visibility)
+        self.view_menu.add_checkbutton(
+            label="Show notes", variable=self.show_notes_var, command=self.update_view_visibility)
         self.view_menu.add_separator()
         self.columns_menu = tk.Menu(self.view_menu, tearoff=False)
         self.view_menu.add_cascade(label="Columns", menu=self.columns_menu)
         self.view_menu.add_separator()
-        self.view_menu.add_checkbutton(label="Dark mode", variable=self.dark_mode_var, command=self.toggle_dark_mode)
+        self.view_menu.add_checkbutton(
+            label="Dark mode", variable=self.dark_mode_var, command=self.toggle_dark_mode)
         self.view_button["menu"] = self.view_menu
 
         self.status_var = tk.StringVar(value="Idle.")
-        ttk.Label(top, textvariable=self.status_var).grid(row=0, column=1, sticky="e", padx=(12, 0), pady=4)
+        ttk.Label(top, textvariable=self.status_var).grid(
+            row=0, column=1, sticky="e", padx=(12, 0), pady=4)
 
         body = ttk.PanedWindow(main, orient="horizontal")
         body.grid(row=1, column=0, sticky="nsew")
@@ -375,11 +240,13 @@ class Freeneta:
         body.add(left, weight=4)
         body.add(right, weight=3)
 
-        columns = ("name", "mac", "vendor", "ip", "ping", "netmask", "gateway", "family")
+        columns = ("name", "mac", "vendor", "ip", "ping",
+                   "netmask", "gateway", "family")
         tree_wrap = ttk.Frame(left)
         tree_wrap.grid(row=0, column=0, sticky="nsew")
 
-        self.tree = ttk.Treeview(tree_wrap, columns=columns, show="headings", height=10)
+        self.tree = ttk.Treeview(
+            tree_wrap, columns=columns, show="headings", height=10)
         headings = {
             "name": "Station Name",
             "mac": "MAC",
@@ -404,11 +271,15 @@ class Freeneta:
         stretchable_columns = {"name", "vendor", "family"}
         for col in columns:
             self.tree.heading(col, text=headings[col])
-            self.tree.column(col, width=widths[col], minwidth=self._scaled(90), anchor="w", stretch=col in stretchable_columns)
+            self.tree.column(col, width=widths[col], minwidth=self._scaled(
+                90), anchor="w", stretch=col in stretchable_columns)
 
-        self.tree_scroll_y = AutoScrollbar(tree_wrap, orient="vertical", command=self.tree.yview)
-        self.tree_scroll_x = AutoScrollbar(tree_wrap, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscrollcommand=self.tree_scroll_y.set, xscrollcommand=self.tree_scroll_x.set)
+        self.tree_scroll_y = AutoScrollbar(
+            tree_wrap, orient="vertical", command=self.tree.yview)
+        self.tree_scroll_x = AutoScrollbar(
+            tree_wrap, orient="horizontal", command=self.tree.xview)
+        self.tree.configure(yscrollcommand=self.tree_scroll_y.set,
+                            xscrollcommand=self.tree_scroll_x.set)
 
         self.tree.grid(row=0, column=0, sticky="nsew")
         self.tree_scroll_y.grid(row=0, column=1, sticky="ns")
@@ -417,16 +288,22 @@ class Freeneta:
         tree_wrap.grid_columnconfigure(0, weight=1)
 
         self.tree.bind("<<TreeviewSelect>>", self.on_tree_selection_changed)
-        self.tree.bind("<ButtonPress-1>", self._remember_column_widths_before_drag, add="+")
-        self.tree.bind("<ButtonRelease-1>", self._detect_user_column_resize, add="+")
-        self.tree.bind("<Double-1>", self._autosize_column_from_header_doubleclick, add="+")
+        self.tree.bind("<ButtonPress-1>",
+                       self._remember_column_widths_before_drag, add="+")
+        self.tree.bind("<ButtonRelease-1>",
+                       self._detect_user_column_resize, add="+")
+        self.tree.bind(
+            "<Double-1>", self._autosize_column_from_header_doubleclick, add="+")
 
         action_row = ttk.Frame(left)
         action_row.grid(row=1, column=0, sticky="ew", pady=(10, 0))
-        ttk.Button(action_row, text="Export CSV", command=self.export_csv).pack(side="left")
-        ttk.Button(action_row, text="Show Selected Details", command=self.show_selected_details).pack(side="left", padx=(8, 0))
+        ttk.Button(action_row, text="Export CSV",
+                   command=self.export_csv).pack(side="left")
+        ttk.Button(action_row, text="Show Selected Details",
+                   command=self.show_selected_details).pack(side="left", padx=(8, 0))
 
-        self.quick_menu_button = ttk.Menubutton(action_row, text="Quick connect", state="disabled")
+        self.quick_menu_button = ttk.Menubutton(
+            action_row, text="Quick connect", state="disabled")
         self.quick_menu_button.pack(side="left", padx=(8, 0))
         self.quick_menu = tk.Menu(self.quick_menu_button, tearoff=False)
         self.quick_menu_button["menu"] = self.quick_menu
@@ -434,7 +311,8 @@ class Freeneta:
         self.left_panel = left
         self.right_panel = right
 
-        self.topology_title = ttk.Label(right, text="Topology View", font="TkHeadingFont")
+        self.topology_title = ttk.Label(
+            right, text="Topology View", font="TkHeadingFont")
         self.topology_title.grid(row=0, column=0, sticky="w")
         self.topology_desc = ttk.Label(
             right,
@@ -443,12 +321,14 @@ class Freeneta:
             justify="left",
         )
 
-        self.canvas = tk.Canvas(right, highlightthickness=1, cursor="hand2", height=self._scaled(380))
+        self.canvas = tk.Canvas(
+            right, highlightthickness=1, cursor="hand2", height=self._scaled(380))
         self.canvas.grid(row=2, column=0, sticky="nsew")
 
         self.notes_title = ttk.Label(right, text="Notes", font="TkHeadingFont")
         self.notes_title.grid(row=3, column=0, sticky="w", pady=(14, 6))
-        self.notes = tk.Text(right, height=8, wrap="word", relief="solid", borderwidth=1, font="TkTextFont", padx=self._scaled(8), pady=self._scaled(8), spacing1=self._scaled(2), spacing3=self._scaled(2))
+        self.notes = tk.Text(right, height=8, wrap="word", relief="solid", borderwidth=1, font="TkTextFont", padx=self._scaled(
+            8), pady=self._scaled(8), spacing1=self._scaled(2), spacing3=self._scaled(2))
         self.notes.insert(
             "1.0",
             "Freeneta – v1.5\n\n"
@@ -483,7 +363,8 @@ class Freeneta:
         self.update_view_visibility()
 
         self.root.bind("<Configure>", self._on_root_resize, add="+")
-        self.body_pane.bind("<ButtonRelease-1>", lambda _e: self._save_current_sash_fraction(), add="+")
+        self.body_pane.bind(
+            "<ButtonRelease-1>", lambda _e: self._save_current_sash_fraction(), add="+")
         self.root.after_idle(self._apply_initial_layout)
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -498,14 +379,14 @@ class Freeneta:
         self._restore_sash_fraction()
         self.outer._update_scrollbar_visibility()
 
-
     def _on_root_resize(self, event=None) -> None:
         if event is not None and event.widget is not self.root:
             return
         if hasattr(self, "outer"):
             self.outer.after_idle(self.outer._update_scrollbar_visibility)
         if hasattr(self, "top_scroller"):
-            self.top_scroller.after_idle(self.top_scroller._update_scrollbar_visibility)
+            self.top_scroller.after_idle(
+                self.top_scroller._update_scrollbar_visibility)
         if self.show_topology_var.get():
             self.root.after_idle(self.draw_topology)
 
@@ -559,7 +440,8 @@ class Freeneta:
                 return
             total_width = max(self.body_pane.winfo_width(), 1)
             sash_x = self.body_pane.sashpos(0)
-            self.last_sash_fraction = min(max(sash_x / total_width, 0.25), 0.85)
+            self.last_sash_fraction = min(
+                max(sash_x / total_width, 0.25), 0.85)
         except tk.TclError:
             pass
 
@@ -642,12 +524,17 @@ class Freeneta:
             style.theme_use("clam")
             style.configure("TFrame", background=c["bg"])
             style.configure("TPanedwindow", background=c["bg"])
-            style.configure("TLabel", background=c["bg"], foreground=c["text"], font="TkDefaultFont")
+            style.configure(
+                "TLabel", background=c["bg"], foreground=c["text"], font="TkDefaultFont")
             style.configure("TButton", padding=(10, 6), font="TkDefaultFont")
-            style.configure("TMenubutton", padding=(10, 6), background=c["panel"], foreground=c["text"], font="TkDefaultFont")
-            style.map("TMenubutton", background=[("active", c["panel"])], foreground=[("active", c["text"])])
-            style.configure("TCheckbutton", background=c["bg"], foreground=c["text"], font="TkDefaultFont")
-            style.map("TCheckbutton", background=[("active", c["bg"])], foreground=[("active", c["text"])])
+            style.configure("TMenubutton", padding=(
+                10, 6), background=c["panel"], foreground=c["text"], font="TkDefaultFont")
+            style.map("TMenubutton", background=[
+                      ("active", c["panel"])], foreground=[("active", c["text"])])
+            style.configure(
+                "TCheckbutton", background=c["bg"], foreground=c["text"], font="TkDefaultFont")
+            style.map("TCheckbutton", background=[
+                      ("active", c["bg"])], foreground=[("active", c["text"])])
             style.configure("TCombobox", padding=self._scaled(6))
             style.configure(
                 "Treeview",
@@ -676,8 +563,10 @@ class Freeneta:
             )
             style.map(
                 "Treeview",
-                background=[("selected", "#2563eb" if self.dark_mode_var.get() else "#bfdbfe")],
-                foreground=[("selected", "#ffffff" if self.dark_mode_var.get() else "#111827")],
+                background=[
+                    ("selected", "#2563eb" if self.dark_mode_var.get() else "#bfdbfe")],
+                foreground=[
+                    ("selected", "#ffffff" if self.dark_mode_var.get() else "#111827")],
             )
             self.tree.tag_configure(
                 "dcp_readonly",
@@ -708,8 +597,10 @@ class Freeneta:
             self.top_scroller.configure(style="TFrame")
             self.top_scroller.canvas.configure(bg=c["bg"])
             self.top_scroller.content.configure(style="TFrame")
-        self.canvas.configure(bg=c["canvas_bg"], highlightbackground=c["canvas_border"])
-        self.notes.configure(bg=c["note_bg"], fg=c["text"], insertbackground=c["text"], highlightbackground=c["note_border"], highlightcolor=c["note_border"])
+        self.canvas.configure(
+            bg=c["canvas_bg"], highlightbackground=c["canvas_border"])
+        self.notes.configure(bg=c["note_bg"], fg=c["text"], insertbackground=c["text"],
+                             highlightbackground=c["note_border"], highlightcolor=c["note_border"])
         if self.show_topology_var.get():
             self.draw_topology()
 
@@ -718,7 +609,8 @@ class Freeneta:
         self.update_view_visibility()
 
     def _build_columns_menu(self) -> None:
-        ordered_columns = ("name", "mac", "vendor", "ip", "netmask", "gateway", "family")
+        ordered_columns = ("name", "mac", "vendor", "ip",
+                           "netmask", "gateway", "family")
         for col in ordered_columns:
             self.columns_menu.add_checkbutton(
                 label=self.column_labels[col],
@@ -735,7 +627,8 @@ class Freeneta:
         self._update_tree_columns()
 
     def _update_tree_columns(self) -> None:
-        ordered_columns = ("name", "mac", "vendor", "ip", "ping", "netmask", "gateway", "family")
+        ordered_columns = ("name", "mac", "vendor", "ip",
+                           "ping", "netmask", "gateway", "family")
         display_columns = []
         for col in ordered_columns:
             if col == "ping":
@@ -749,7 +642,8 @@ class Freeneta:
         self.tree.configure(displaycolumns=tuple(display_columns))
         self.root.after_idle(self.autosize_tree_columns)
         if hasattr(self, "top_scroller"):
-            self.top_scroller.after_idle(self.top_scroller._update_scrollbar_visibility)
+            self.top_scroller.after_idle(
+                self.top_scroller._update_scrollbar_visibility)
 
     def _tree_display_columns(self):
         display_cols = self.tree.cget("displaycolumns")
@@ -799,7 +693,8 @@ class Freeneta:
 
     def autosize_tree_columns(self, only_visible: bool = True, columns=None) -> None:
         if columns is None:
-            display_cols = self._tree_display_columns() if only_visible else tuple(self.tree["columns"])
+            display_cols = self._tree_display_columns(
+            ) if only_visible else tuple(self.tree["columns"])
         else:
             display_cols = tuple(columns)
 
@@ -827,12 +722,15 @@ class Freeneta:
 
             for item in self.tree.get_children():
                 values = self.tree.item(item, "values")
-                cell_text = str(values[value_idx]) if value_idx < len(values) else ""
-                best_width = max(best_width, body_font.measure(cell_text) + padding)
+                cell_text = str(values[value_idx]) if value_idx < len(
+                    values) else ""
+                best_width = max(
+                    best_width, body_font.measure(cell_text) + padding)
 
             best_width = max(min_col_width, min(best_width, max_col_width))
             stretch = bool(self.tree.column(col, "stretch"))
-            self.tree.column(col, width=best_width, minwidth=min_col_width, stretch=stretch)
+            self.tree.column(col, width=best_width,
+                             minwidth=min_col_width, stretch=stretch)
 
     def get_host_interfaces(self):
         interfaces = []
@@ -847,8 +745,10 @@ class Freeneta:
 
         def sort_key(item):
             name = item[0].lower()
-            ethernet_score = 0 if any(x in name for x in ["ethernet", "eth", "enp", "eno", "ens"]) else 1
-            wireless_score = 1 if any(x in name for x in ["wlan", "wi-fi", "wifi", "wl"]) else 0
+            ethernet_score = 0 if any(
+                x in name for x in ["ethernet", "eth", "enp", "eno", "ens"]) else 1
+            wireless_score = 1 if any(
+                x in name for x in ["wlan", "wi-fi", "wifi", "wl"]) else 0
             virtual_score = 1 if any(
                 x in name for x in [
                     "vmware", "virtual", "vbox", "hyper-v", "loopback",
@@ -871,11 +771,13 @@ class Freeneta:
 
     def refresh_host_interfaces(self, preserve_selection: bool = True) -> None:
         previous_selection = self.host_interface_var.get() if preserve_selection else ""
-        previous_iface_name = previous_selection.split(" (", 1)[0] if previous_selection else ""
+        previous_iface_name = previous_selection.split(
+            " (", 1)[0] if previous_selection else ""
         previous_ip = self.host_ip_var.get().strip()
 
         self.host_interfaces = self.get_host_interfaces()
-        interface_values = [f"{iface} ({ip})" for iface, ip in self.host_interfaces]
+        interface_values = [
+            f"{iface} ({ip})" for iface, ip in self.host_interfaces]
         self.interface_combo["values"] = interface_values
 
         selected_label = ""
@@ -912,15 +814,18 @@ class Freeneta:
         current_ip = self.host_ip_var.get().strip()
         if current_ip:
             if current_ip != previous_ip:
-                self.status_var.set(f"Host interface refreshed. Using {current_ip}.")
+                self.status_var.set(
+                    f"Host interface refreshed. Using {current_ip}.")
             else:
-                self.status_var.set(f"Host interface list refreshed. Still using {current_ip}.")
+                self.status_var.set(
+                    f"Host interface list refreshed. Still using {current_ip}.")
         else:
             self.status_var.set("No usable IPv4 host interface found.")
 
     def _get_dcp(self):
         if DCP is None:
-            raise RuntimeError("pnio_dcp is not installed in this Python environment.")
+            raise RuntimeError(
+                "pnio_dcp is not installed in this Python environment.")
         host_ip = self.host_ip_var.get().strip()
         if not host_ip:
             raise RuntimeError("Host IP is empty.")
@@ -929,7 +834,8 @@ class Freeneta:
     def _normalize_dcp_access(self, access_value) -> str:
         if access_value is None:
             return "unknown"
-        access = str(access_value).strip().lower().replace("-", "_").replace(" ", "_")
+        access = str(access_value).strip().lower().replace(
+            "-", "_").replace(" ", "_")
         if access in {"read_only", "readonly", "ro"}:
             return "read_only"
         if access in {"read_write", "readwrite", "rw"}:
@@ -976,8 +882,10 @@ class Freeneta:
                 elif isinstance(block, DCPIPBlock):
                     result["ip_writable"] = bool(block.block_info & 0x0001)
                 elif isinstance(block, DCPDeviceOptionsBlock):
-                    opts = [(o.option, o.sub_option) for o in block.device_options]
-                    result["options_writable"] = any(o in {(2, 2), (1, 2)} for o in opts)
+                    opts = [(o.option, o.sub_option)
+                            for o in block.device_options]
+                    result["options_writable"] = any(
+                        o in {(2, 2), (1, 2)} for o in opts)
             return result
         except Exception:
             return None
@@ -1022,7 +930,8 @@ class Freeneta:
             timeout = 3 + SNIFF_EXTRA_SECONDS
             try:
                 if iface:
-                    sniff(iface=iface, prn=handle, timeout=timeout, store=False)
+                    sniff(iface=iface, prn=handle,
+                          timeout=timeout, store=False)
                 else:
                     sniff(prn=handle, timeout=timeout, store=False)
             finally:
@@ -1036,7 +945,8 @@ class Freeneta:
         access_by_mac = {}
         for dev in found:
             mac = str(getattr(dev, "MAC", "")).lower()
-            access_by_mac[mac] = self._determine_dcp_access_from_raw(raw_by_mac.get(mac))
+            access_by_mac[mac] = self._determine_dcp_access_from_raw(
+                raw_by_mac.get(mac))
         return found, access_by_mac
 
     def scan_devices(self) -> None:
@@ -1050,20 +960,23 @@ class Freeneta:
         try:
             found, access_by_mac = self._discover_devices_with_access()
             rows = []
-            existing_by_mac = {dev.mac.upper(): dev for dev in self.devices if dev.mac}
+            existing_by_mac = {
+                dev.mac.upper(): dev for dev in self.devices if dev.mac}
             for dev in found:
                 mac = str(getattr(dev, "MAC", ""))
                 existing = existing_by_mac.get(mac.upper())
                 rows.append(
                     DeviceRow(
-                        name_of_station=str(getattr(dev, "name_of_station", "")),
+                        name_of_station=str(
+                            getattr(dev, "name_of_station", "")),
                         mac=mac,
                         ip=str(getattr(dev, "IP", "")),
                         netmask=str(getattr(dev, "netmask", "")),
                         gateway=str(getattr(dev, "gateway", "")),
                         family=str(getattr(dev, "family", "")),
                         dcp_access=access_by_mac.get(mac.lower(), "unknown"),
-                        vendor=(existing.vendor if existing else self.vendor_cache.get(self._mac_prefix(mac), "Looking up...")),
+                        vendor=(existing.vendor if existing else self.vendor_cache.get(
+                            self._mac_prefix(mac), "Looking up...")),
                         ping_status=existing.ping_status if existing else "Unknown",
                         ping_ms=existing.ping_ms if existing else "",
                     )
@@ -1077,12 +990,16 @@ class Freeneta:
         for item in self.tree.get_children():
             self.tree.delete(item)
         for idx, dev in enumerate(rows):
-            self.tree.insert("", "end", iid=str(idx), values=self._device_values(dev), tags=(self._device_row_tag(dev),))
+            self.tree.insert("", "end", iid=str(idx), values=self._device_values(
+                dev), tags=(self._device_row_tag(dev),))
         self.scan_btn.configure(state="normal")
         self.refresh_btn.configure(state="normal")
-        read_only_count = sum(1 for dev in rows if self._device_row_tag(dev) == "dcp_readonly")
-        read_write_count = sum(1 for dev in rows if self._device_row_tag(dev) == "dcp_readwrite")
-        self.status_var.set(f"Found {len(rows)} device(s). RW: {read_write_count}  RO: {read_only_count}")
+        read_only_count = sum(
+            1 for dev in rows if self._device_row_tag(dev) == "dcp_readonly")
+        read_write_count = sum(
+            1 for dev in rows if self._device_row_tag(dev) == "dcp_readwrite")
+        self.status_var.set(
+            f"Found {len(rows)} device(s). RW: {read_write_count}  RO: {read_only_count}")
         self._update_tree_columns()
         self.autosize_tree_columns()
         if self.show_topology_var.get():
@@ -1182,10 +1099,14 @@ class Freeneta:
         frame = ttk.Frame(dialog, padding=14)
         frame.pack(fill="both", expand=True)
 
-        ttk.Label(frame, text=f"Assign IP settings for {mac}").grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
-        ttk.Label(frame, text="IP address").grid(row=1, column=0, sticky="w", pady=4)
-        ttk.Label(frame, text="Subnet mask").grid(row=2, column=0, sticky="w", pady=4)
-        ttk.Label(frame, text="Gateway").grid(row=3, column=0, sticky="w", pady=4)
+        ttk.Label(frame, text=f"Assign IP settings for {mac}").grid(
+            row=0, column=0, columnspan=2, sticky="w", pady=(0, 10))
+        ttk.Label(frame, text="IP address").grid(
+            row=1, column=0, sticky="w", pady=4)
+        ttk.Label(frame, text="Subnet mask").grid(
+            row=2, column=0, sticky="w", pady=4)
+        ttk.Label(frame, text="Gateway").grid(
+            row=3, column=0, sticky="w", pady=4)
 
         ip_var = tk.StringVar(value=ip)
         netmask_var = tk.StringVar(value=netmask)
@@ -1201,7 +1122,8 @@ class Freeneta:
         result = {"value": None}
 
         def submit(event=None):
-            result["value"] = (ip_var.get().strip(), netmask_var.get().strip(), gateway_var.get().strip())
+            result["value"] = (ip_var.get().strip(
+            ), netmask_var.get().strip(), gateway_var.get().strip())
             dialog.destroy()
 
         def cancel(event=None):
@@ -1210,7 +1132,8 @@ class Freeneta:
         btns = ttk.Frame(frame)
         btns.grid(row=4, column=0, columnspan=2, sticky="e", pady=(12, 0))
         ttk.Button(btns, text="Cancel", command=cancel).pack(side="right")
-        ttk.Button(btns, text="Apply", command=submit).pack(side="right", padx=(0, 8))
+        ttk.Button(btns, text="Apply", command=submit).pack(
+            side="right", padx=(0, 8))
 
         frame.columnconfigure(1, weight=1)
         dialog.bind("<Return>", submit)
@@ -1238,7 +1161,8 @@ class Freeneta:
         if not dev:
             messagebox.showinfo("No selection", "Pick a device first.")
             return
-        name = simpledialog.askstring("Set station name", "New PROFINET station name:", initialvalue=dev.name_of_station or "device-01")
+        name = simpledialog.askstring(
+            "Set station name", "New PROFINET station name:", initialvalue=dev.name_of_station or "device-01")
         if not name:
             return
         try:
@@ -1263,7 +1187,8 @@ class Freeneta:
             elif hasattr(dcp, "reset"):
                 dcp.reset(dev.mac)
             else:
-                raise RuntimeError("This pnio_dcp version does not expose a reset method.")
+                raise RuntimeError(
+                    "This pnio_dcp version does not expose a reset method.")
             self.status_var.set(f"Reset requested for {dev.mac}")
             self.scan_devices()
         except Exception as exc:
@@ -1292,14 +1217,17 @@ class Freeneta:
     def export_csv(self) -> None:
         import csv
         from tkinter import filedialog
-        path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
+        path = filedialog.asksaveasfilename(
+            defaultextension=".csv", filetypes=[("CSV files", "*.csv")])
         if not path:
             return
         with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["station_name", "mac", "vendor", "ip", "ping_status", "ping_ms", "netmask", "gateway", "family"])
+            writer.writerow(["station_name", "mac", "vendor", "ip",
+                            "ping_status", "ping_ms", "netmask", "gateway", "family"])
             for dev in self.devices:
-                writer.writerow([dev.name_of_station, dev.mac, dev.vendor, dev.ip, dev.ping_status, dev.ping_ms, dev.netmask, dev.gateway, dev.family])
+                writer.writerow([dev.name_of_station, dev.mac, dev.vendor, dev.ip,
+                                dev.ping_status, dev.ping_ms, dev.netmask, dev.gateway, dev.family])
         self.status_var.set(f"Exported CSV to {path}")
 
     def draw_topology(self) -> None:
@@ -1317,7 +1245,8 @@ class Freeneta:
         pc_bottom = pc_top + self._scaled(64)
         pc_rect = self.canvas.create_rectangle(
             w / 2 - pc_half_w, pc_top, w / 2 + pc_half_w, pc_bottom,
-            fill=c["pc_fill"], outline=c["pc_outline"], width=max(2, self._scaled(2)),
+            fill=c["pc_fill"], outline=c["pc_outline"], width=max(
+                2, self._scaled(2)),
         )
         pc_text = self.canvas.create_text(
             w / 2, (pc_top + pc_bottom) / 2,
@@ -1329,7 +1258,8 @@ class Freeneta:
         self.canvas.tag_bind(pc_text, "<Button-1>", self.on_canvas_click)
 
         if not self.devices:
-            self.canvas.create_text(w / 2, h / 2, text="No devices scanned yet.", font="TkDefaultFont", fill=c["text"])
+            self.canvas.create_text(
+                w / 2, h / 2, text="No devices scanned yet.", font="TkDefaultFont", fill=c["text"])
             return
 
         n = len(self.devices)
@@ -1350,10 +1280,13 @@ class Freeneta:
             outline = c["node_selected_outline"] if is_selected else c["node_outline"]
             status_color = self._status_color(dev.ping_status)
 
-            line_id = self.canvas.create_line(w / 2, top_anchor_y, x, y - node_half_h, fill=c["line"], dash=(4, 3), width=max(2, self._scaled(2)))
-            oval_id = self.canvas.create_oval(x - node_half_w, y - node_half_h, x + node_half_w, y + node_half_h, fill=fill, outline=outline, width=max(2, self._scaled(2)))
+            line_id = self.canvas.create_line(
+                w / 2, top_anchor_y, x, y - node_half_h, fill=c["line"], dash=(4, 3), width=max(2, self._scaled(2)))
+            oval_id = self.canvas.create_oval(x - node_half_w, y - node_half_h, x + node_half_w,
+                                              y + node_half_h, fill=fill, outline=outline, width=max(2, self._scaled(2)))
             status_dot_id = self.canvas.create_oval(
-                x - node_half_w + self._scaled(10), y - self._scaled(10), x - node_half_w + self._scaled(10) + status_dot * 2, y - self._scaled(10) + status_dot * 2,
+                x - node_half_w + self._scaled(10), y - self._scaled(10), x - node_half_w + self._scaled(
+                    10) + status_dot * 2, y - self._scaled(10) + status_dot * 2,
                 fill=status_color, outline=status_color, width=1
             )
             text_id = self.canvas.create_text(
@@ -1370,7 +1303,8 @@ class Freeneta:
             self.canvas_item_to_index[text_id] = idx - 1
             self.canvas_item_to_index[line_id] = idx - 1
             self.canvas.tag_bind(oval_id, "<Button-1>", self.on_canvas_click)
-            self.canvas.tag_bind(status_dot_id, "<Button-1>", self.on_canvas_click)
+            self.canvas.tag_bind(
+                status_dot_id, "<Button-1>", self.on_canvas_click)
             self.canvas.tag_bind(text_id, "<Button-1>", self.on_canvas_click)
             self.canvas.tag_bind(line_id, "<Button-1>", self.on_canvas_click)
 
@@ -1387,7 +1321,8 @@ class Freeneta:
         return "#9ca3af"
 
     def _start_vendor_lookup_for_unknowns(self) -> None:
-        threading.Thread(target=self._vendor_lookup_worker, daemon=True).start()
+        threading.Thread(target=self._vendor_lookup_worker,
+                         daemon=True).start()
 
     def _vendor_lookup_worker(self) -> None:
         for idx, dev in enumerate(list(self.devices)):
@@ -1398,12 +1333,14 @@ class Freeneta:
                 cached = self.vendor_cache.get(prefix)
             if cached:
                 if dev.vendor != cached:
-                    self.root.after(0, lambda i=idx, v=cached: self._update_device_vendor(i, v))
+                    self.root.after(0, lambda i=idx,
+                                    v=cached: self._update_device_vendor(i, v))
                 continue
             vendor = self.lookup_mac_vendor(dev.mac)
             with self.vendor_lookup_lock:
                 self.vendor_cache[prefix] = vendor
-            self.root.after(0, lambda i=idx, v=vendor: self._update_device_vendor(i, v))
+            self.root.after(0, lambda i=idx,
+                            v=vendor: self._update_device_vendor(i, v))
 
     def _update_device_vendor(self, idx: int, vendor: str) -> None:
         if idx < 0 or idx >= len(self.devices):
@@ -1459,7 +1396,8 @@ class Freeneta:
         if self.ping_thread and self.ping_thread.is_alive():
             return
         self.ping_monitor_stop.clear()
-        self.ping_thread = threading.Thread(target=self._ping_monitor_worker, daemon=True)
+        self.ping_thread = threading.Thread(
+            target=self._ping_monitor_worker, daemon=True)
         self.ping_thread.start()
 
     def _ping_monitor_worker(self) -> None:
@@ -1469,10 +1407,12 @@ class Freeneta:
                 if self.ping_monitor_stop.is_set():
                     break
                 if not ip or ip == "0.0.0.0":
-                    self.root.after(0, lambda i=idx: self._update_ping_status(i, "No IP", ""))
+                    self.root.after(
+                        0, lambda i=idx: self._update_ping_status(i, "No IP", ""))
                     continue
                 status, latency = self._ping_once(ip)
-                self.root.after(0, lambda i=idx, s=status, l=latency: self._update_ping_status(i, s, l))
+                self.root.after(0, lambda i=idx, s=status,
+                                l=latency: self._update_ping_status(i, s, l))
             self.ping_monitor_stop.wait(5.0)
 
     def _update_ping_status(self, idx: int, status: str, ping_ms: str) -> None:
@@ -1539,19 +1479,23 @@ class Freeneta:
         self.port_scan_token += 1
         token = self.port_scan_token
         if not dev or not dev.ip or dev.ip == "0.0.0.0":
-            self.root.after(0, lambda: self._set_quick_actions([], message="Quick connect"))
+            self.root.after(0, lambda: self._set_quick_actions(
+                [], message="Quick connect"))
             return
 
         self._set_quick_actions([], message="Checking ports...")
-        threading.Thread(target=self._port_scan_worker, args=(token, dev.ip), daemon=True).start()
+        threading.Thread(target=self._port_scan_worker,
+                         args=(token, dev.ip), daemon=True).start()
 
     def _port_scan_worker(self, token: int, ip: str) -> None:
-        port_labels = {80: "Open web UI (HTTP)", 443: "Open web UI (HTTPS)", 22: "Open SSH session"}
+        port_labels = {
+            80: "Open web UI (HTTP)", 443: "Open web UI (HTTPS)", 22: "Open SSH session"}
         open_ports = []
         for port in (80, 443, 22):
             if self._is_port_open(ip, port):
                 open_ports.append((port, port_labels[port]))
-        self.root.after(0, lambda: self._apply_quick_actions(token, ip, open_ports))
+        self.root.after(0, lambda: self._apply_quick_actions(
+            token, ip, open_ports))
 
     def _apply_quick_actions(self, token: int, ip: str, open_ports) -> None:
         if token != self.port_scan_token:
@@ -1559,11 +1503,14 @@ class Freeneta:
         actions = []
         for port, label in open_ports:
             if port == 80:
-                actions.append((label, lambda target=ip: self._open_url(f"http://{target}")))
+                actions.append(
+                    (label, lambda target=ip: self._open_url(f"http://{target}")))
             elif port == 443:
-                actions.append((label, lambda target=ip: self._open_url(f"https://{target}")))
+                actions.append(
+                    (label, lambda target=ip: self._open_url(f"https://{target}")))
             elif port == 22:
-                actions.append((label, lambda target=ip: self._open_ssh(target)))
+                actions.append(
+                    (label, lambda target=ip: self._open_ssh(target)))
         self._set_quick_actions(actions)
 
     def _set_quick_actions(self, actions, message: str = "Quick connect") -> None:
@@ -1573,7 +1520,8 @@ class Freeneta:
         if actions:
             for label, command in actions:
                 self.quick_menu.add_command(label=label, command=command)
-            self.quick_menu_button.configure(text=f"Quick connect ({len(actions)})", state="normal")
+            self.quick_menu_button.configure(
+                text=f"Quick connect ({len(actions)})", state="normal")
         else:
             self.quick_menu.add_command(label=message, state="disabled")
             self.quick_menu_button.configure(text=message, state="disabled")
@@ -1612,11 +1560,13 @@ Leave blank to open a plain ssh prompt.""",
                 if shutil.which("wt"):
                     subprocess.Popen(["wt", "new-tab", "ssh", target])
                 elif shutil.which("ssh"):
-                    subprocess.Popen(["cmd", "/c", "start", "", "cmd", "/k", f"ssh {target}"])
+                    subprocess.Popen(
+                        ["cmd", "/c", "start", "", "cmd", "/k", f"ssh {target}"])
                 elif shutil.which("putty"):
                     subprocess.Popen(["putty", "-ssh", target])
                 else:
-                    raise RuntimeError("No SSH client found. Install OpenSSH or PuTTY.")
+                    raise RuntimeError(
+                        "No SSH client found. Install OpenSSH or PuTTY.")
             else:
                 terminal_cmds = [
                     ["x-terminal-emulator", "-e", f"ssh {target}"],
@@ -1631,7 +1581,8 @@ Leave blank to open a plain ssh prompt.""",
                         launched = True
                         break
                 if not launched:
-                    raise RuntimeError("No supported terminal emulator found to launch SSH.")
+                    raise RuntimeError(
+                        "No supported terminal emulator found to launch SSH.")
             self.status_var.set(f"Launching SSH to {target}")
         except Exception as exc:
             messagebox.showerror("SSH launch failed", str(exc))
@@ -1654,7 +1605,6 @@ Leave blank to open a plain ssh prompt.""",
                 values=self._device_values(dev),
                 tags=(self._device_row_tag(dev),),
             )
-
 
     def on_close(self) -> None:
         self.ping_monitor_stop.set()
