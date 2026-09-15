@@ -812,13 +812,15 @@ class Freeneta:
         previous_ip = self.host_ip_var.get().strip()
         self.refresh_host_interfaces(preserve_selection=True)
         current_ip = self.host_ip_var.get().strip()
+        current_interface = self.host_interface_var.get()
+        current_iface_name = current_interface.split(" (", 1)[0] if current_interface else ""
         if current_ip:
             if current_ip != previous_ip:
                 self.status_var.set(
-                    f"Host interface refreshed. Using {current_ip}.")
+                    f"Host interface refreshed. \r\nUsing {current_interface}.")
             else:
                 self.status_var.set(
-                    f"Host interface list refreshed. Still using {current_ip}.")
+                    f"Host interface list refreshed. \r\nStill using {current_iface_name}.")
         else:
             self.status_var.set("No usable IPv4 host interface found.")
 
