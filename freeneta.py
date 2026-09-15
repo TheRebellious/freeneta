@@ -200,6 +200,7 @@ class Freeneta:
     def __init__(self, root: tk.Tk):
         self.root = root
         self.root.title("FreeNeta")
+        self.root.iconbitmap("app.ico")
         self.ui_scale = self._detect_ui_scale()
         self._configure_tk_scaling()
         self.root.geometry(self._scaled_geometry(1440, 820))
