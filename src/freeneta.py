@@ -63,8 +63,12 @@ class Freeneta:
     # -------------------------------------------------------------------------
 
     def refresh_host_interfaces(self, preserve_selection: bool = True) -> None:
-        previous_selection = self.window.host_interface_var.get() if preserve_selection else ""
-        previous_iface_name = previous_selection.split(" (", 1)[0] if previous_selection else ""
+        previous_selection = (
+            self.window.host_interface_var.get() if preserve_selection else ""
+        )
+        previous_iface_name = (
+            previous_selection.split(" (", 1)[0] if previous_selection else ""
+        )
         previous_ip = self.window.host_ip_var.get().strip()
 
         self.host_interfaces = self.network_service.get_host_interfaces()
@@ -85,7 +89,9 @@ class Freeneta:
                     selected_label = f"{iface_name} ({ip})"
                     break
         elif interface_values:
-            selected_label = self.network_service.get_preferred_interface(self.host_interfaces)
+            selected_label = self.network_service.get_preferred_interface(
+                self.host_interfaces
+            )
 
         if selected_label:
             self.window.host_interface_var.set(selected_label)
@@ -107,12 +113,18 @@ class Freeneta:
         self.refresh_host_interfaces(preserve_selection=True)
         current_ip = self.window.host_ip_var.get().strip()
         current_interface = self.window.host_interface_var.get()
-        current_iface_name = current_interface.split(" (", 1)[0] if current_interface else ""
+        current_iface_name = (
+            current_interface.split(" (", 1)[0] if current_interface else ""
+        )
         if current_ip:
             if current_ip != previous_ip:
-                self.window.status_var.set(f"Host interface refreshed. \r\nUsing {current_interface}.")
+                self.window.status_var.set(
+                    f"Host interface refreshed. \r\nUsing {current_interface}."
+                )
             else:
-                self.window.status_var.set(f"Host interface list refreshed. \r\nStill using {current_iface_name}.")
+                self.window.status_var.set(
+                    f"Host interface list refreshed. \r\nStill using {current_iface_name}."
+                )
         else:
             self.window.status_var.set("No usable IPv4 host interface found.")
 
@@ -143,8 +155,12 @@ class Freeneta:
         self.window.set_device_selected_state(False)
         self.window.scan_btn.configure(state="normal")
 
-        read_only_count = sum(1 for dev in rows if dev.dcp_access_normalized == "read_only")
-        read_write_count = sum(1 for dev in rows if dev.dcp_access_normalized == "read_write")
+        read_only_count = sum(
+            1 for dev in rows if dev.dcp_access_normalized == "read_only"
+        )
+        read_write_count = sum(
+            1 for dev in rows if dev.dcp_access_normalized == "read_write"
+        )
         self.window.status_var.set(
             f"Found {len(rows)} device(s). RW: {read_write_count}  RO: {read_only_count}"
         )
@@ -172,17 +188,28 @@ class Freeneta:
             parent=self.root,
             mac=dev.mac,
             initial_ip=dev.ip if dev.ip != "0.0.0.0" else "192.168.0.10",
-            initial_netmask=dev.netmask if dev.netmask and dev.netmask != "0.0.0.0" else "255.255.255.0",
+            initial_netmask=(
+                dev.netmask
+                if dev.netmask and dev.netmask != "0.0.0.0"
+                else "255.255.255.0"
+            ),
             initial_gateway=dev.gateway if dev.gateway else "0.0.0.0",
+            initial_persistent=False,
         )
         if not values:
             return
 
-        ip, netmask, gateway = values
+        ip, netmask, gateway, persistent = values
         try:
             host_ip = self.window.host_ip_var.get().strip()
-            self.profinet_service.set_device_ip(host_ip, dev.mac, ip, netmask, gateway)
-            self.window.status_var.set(f"Assigned {ip} to {dev.mac}")
+            self.profinet_service.set_device_ip(
+                host_ip, dev.mac, ip, netmask, gateway, persistent
+            )
+            self.window.status_var.set(
+                f"Assigned {ip} to {dev.mac}"
+                if persistent
+                else f"Assigned {ip} to {dev.mac} (temporary)"
+            )
             self.scan_devices()
         except Exception as exc:
             Dialogs.show_error("Set IP failed", str(exc))
@@ -217,7 +244,9 @@ class Freeneta:
         try:
             host_ip = self.window.host_ip_var.get().strip()
             self.profinet_service.reset_device_communication(host_ip, dev.mac)
-            self.window.status_var.set(f"Factory reset command sent to {dev.mac}. Rescanning...")
+            self.window.status_var.set(
+                f"Factory reset command sent to {dev.mac}. Rescanning..."
+            )
             self.scan_devices()
         except Exception as exc:
             Dialogs.show_error("Factory reset failed", str(exc))
@@ -269,7 +298,9 @@ class Freeneta:
 
     def _ensure_ping_monitor_running(self) -> None:
         def on_ping_updated(idx: int, status: str, latency: str):
-            self.root.after(0, lambda i=idx, s=status, l=latency: self._update_ping_status(i, s, l))
+            self.root.after(
+                0, lambda i=idx, s=status, l=latency: self._update_ping_status(i, s, l)
+            )
 
         self.ping_monitor.start(
             get_devices_callback=lambda: self.devices,
@@ -316,9 +347,13 @@ class Freeneta:
         actions = []
         for port, label in open_ports:
             if port == 80:
-                actions.append((label, lambda target=ip: self._open_url(f"http://{target}")))
+                actions.append(
+                    (label, lambda target=ip: self._open_url(f"http://{target}"))
+                )
             elif port == 443:
-                actions.append((label, lambda target=ip: self._open_url(f"https://{target}")))
+                actions.append(
+                    (label, lambda target=ip: self._open_url(f"https://{target}"))
+                )
             elif port == 22:
                 actions.append((label, lambda target=ip: self._open_ssh(target)))
         self.window.set_quick_actions(actions)
@@ -359,6 +394,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     try:
         from tkinter import ttk
+
         ttk.Style().theme_use("clam")
     except Exception:
         pass
