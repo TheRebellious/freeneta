@@ -222,6 +222,11 @@ class ProfinetService:
         dcp = self._get_dcp_client(host_ip)
         dcp.set_name_of_station(mac, name)
 
+    def blink_device(self, host_ip: str, mac: str) -> None:
+        """Blinks the device's LED for identification."""
+        dcp = self._get_dcp_client(host_ip)
+        dcp.blink(mac)
+
     def reset_device_communication(self, host_ip: str, mac: str) -> None:
         """Resets device communication parameters to factory defaults."""
         dcp = self._get_dcp_client(host_ip)

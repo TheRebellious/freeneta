@@ -44,6 +44,7 @@ class Freeneta:
             "scan_devices": self.scan_devices,
             "set_ip": self.set_ip_for_selected,
             "set_name": self.set_name_for_selected,
+            "blink": self.blink_selected,
             "reset_comm": self.reset_selected,
             "export_csv": self.export_csv,
             "show_details": self.show_selected_details,
@@ -213,6 +214,19 @@ class Freeneta:
             self.scan_devices()
         except Exception as exc:
             Dialogs.show_error("Set IP failed", str(exc))
+
+    def blink_selected(self) -> None:
+        dev = self.window.table_view.get_selected_device()
+        if not dev:
+            Dialogs.show_info("No selection", "Pick a device first.")
+            return
+
+        try:
+            host_ip = self.window.host_ip_var.get().strip()
+            self.profinet_service.blink_device(host_ip, dev.mac)
+            self.window.status_var.set(f"Blink command sent to {dev.mac}")
+        except Exception as exc:
+            Dialogs.show_error("Blink failed", str(exc))
 
     def set_name_for_selected(self) -> None:
         dev = self.window.table_view.get_selected_device()

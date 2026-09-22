@@ -215,6 +215,14 @@ class MainWindow:
         self.quick_menu = tk.Menu(self.quick_menu_button, tearoff=False)
         self.quick_menu_button["menu"] = self.quick_menu
 
+        self.blink_btn = ttk.Button(
+            action_row,
+            text="Blink Device",
+            state="disabled",
+            command=self.callbacks.get("blink", lambda: None),
+        )
+        self.blink_btn.pack(side="left", padx=(8, 0))
+
         # -------------------------------------------------------------
         # Right Panel: Topology & Notes
         # -------------------------------------------------------------
@@ -286,6 +294,7 @@ class MainWindow:
         self.set_ip_btn.configure(state=button_state)
         self.set_name_btn.configure(state=button_state)
         self.reset_btn.configure(state=button_state)
+        self.blink_btn.configure(state=button_state)
         if hasattr(self, "show_details_btn"):
             self.show_details_btn.configure(state=button_state)
 
