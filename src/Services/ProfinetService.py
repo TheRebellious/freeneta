@@ -13,6 +13,7 @@ from Services.Constants import (
 
 try:
     from scapy.all import Ether, conf, load_contrib, sniff
+
     load_contrib("pnio")
     load_contrib("pnio_dcp")
     from scapy.contrib.pnio import ProfinetIO
@@ -22,9 +23,12 @@ try:
         DCPIPBlock,
         ProfinetDCP,
     )
+
     SCAPY_DCP_AVAILABLE = True
 except Exception:
-    sniff = conf = Ether = ProfinetIO = ProfinetDCP = DCPIPBlock = DCPNameOfStationBlock = DCPDeviceOptionsBlock = None
+    sniff = conf = Ether = ProfinetIO = ProfinetDCP = DCPIPBlock = (
+        DCPNameOfStationBlock
+    ) = DCPDeviceOptionsBlock = None
     SCAPY_DCP_AVAILABLE = False
 
 try:
@@ -49,7 +53,9 @@ class ProfinetService:
         if DCP is None:
             raise RuntimeError("pnio_dcp is not installed in this Python environment.")
         if not host_ip or not host_ip.strip():
-            raise RuntimeError("Host IP is empty. Please select a valid host interface.")
+            raise RuntimeError(
+                "Host IP is empty. Please select a valid host interface."
+            )
         return DCP(host_ip.strip())
 
     @staticmethod
@@ -72,13 +78,19 @@ class ProfinetService:
         try:
             if Ether not in pkt or pkt[Ether].type != PROFINET_ETHERTYPE:
                 return None
-            if ProfinetIO not in pkt or pkt[ProfinetIO].frameID != DCP_IDENTIFY_RESPONSE_FRAME_ID:
+            if (
+                ProfinetIO not in pkt
+                or pkt[ProfinetIO].frameID != DCP_IDENTIFY_RESPONSE_FRAME_ID
+            ):
                 return None
             if ProfinetDCP not in pkt:
                 return None
 
             dcp = pkt[ProfinetDCP]
-            if dcp.service_id != DCP_SERVICE_ID_IDENTIFY or dcp.service_type != DCP_RESPONSE:
+            if (
+                dcp.service_id != DCP_SERVICE_ID_IDENTIFY
+                or dcp.service_type != DCP_RESPONSE
+            ):
                 return None
 
             result = {
@@ -95,7 +107,9 @@ class ProfinetService:
                     result["ip_writable"] = bool(block.block_info & 0x0001)
                 elif isinstance(block, DCPDeviceOptionsBlock):
                     opts = [(o.option, o.sub_option) for o in block.device_options]
-                    result["options_writable"] = any(o in {(2, 2), (1, 2)} for o in opts)
+                    result["options_writable"] = any(
+                        o in {(2, 2), (1, 2)} for o in opts
+                    )
             return result
         except Exception:
             return None
@@ -161,13 +175,13 @@ class ProfinetService:
 
             for dev in found:
                 mac = str(getattr(dev, "MAC", "")).lower()
-                access_by_mac[mac] = self._determine_dcp_access_from_raw(raw_by_mac.get(mac))
+                access_by_mac[mac] = self._determine_dcp_access_from_raw(
+                    raw_by_mac.get(mac)
+                )
         else:
             found = dcp.identify_all()
 
-        existing_by_mac = {
-            d.mac.upper(): d for d in (existing_devices or []) if d.mac
-        }
+        existing_by_mac = {d.mac.upper(): d for d in (existing_devices or []) if d.mac}
 
         devices: List[DeviceRow] = []
         for dev in found:
@@ -190,15 +204,28 @@ class ProfinetService:
 
         return devices
 
-    def set_device_ip(self, host_ip: str, mac: str, ip: str, netmask: str, gateway: str) -> None:
+    def set_device_ip(
+        self,
+        host_ip: str,
+        mac: str,
+        ip: str,
+        netmask: str,
+        gateway: str,
+        persistent: bool,
+    ) -> None:
         """Sets device IP configuration over DCP."""
         dcp = self._get_dcp_client(host_ip)
-        dcp.set_ip_address(mac, [ip, netmask, gateway])
+        dcp.set_ip_address(mac, [ip, netmask, gateway], store_permanent=persistent)
 
     def set_device_name(self, host_ip: str, mac: str, name: str) -> None:
         """Sets PROFINET station name over DCP."""
         dcp = self._get_dcp_client(host_ip)
         dcp.set_name_of_station(mac, name)
+
+    def blink_device(self, host_ip: str, mac: str) -> None:
+        """Blinks the device's LED for identification."""
+        dcp = self._get_dcp_client(host_ip)
+        dcp.blink(mac)
 
     def reset_device_communication(self, host_ip: str, mac: str) -> None:
         """Resets device communication parameters to factory defaults."""
@@ -209,4 +236,3 @@ class ProfinetService:
             dcp.reset(mac)
         else:
             raise RuntimeError("This pnio_dcp version does not expose a reset method.")
-

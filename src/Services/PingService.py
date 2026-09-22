@@ -18,7 +18,7 @@ class PingService:
             pos = lowered.find(marker)
             if pos == -1:
                 continue
-            rest = output[pos + len(marker):]
+            rest = output[pos + len(marker) :]
             value = []
             for ch in rest:
                 if ch.isdigit() or ch in ".<":
@@ -106,4 +106,3 @@ class PingMonitor:
     def stop(self) -> None:
         """Signals the background worker to stop."""
         self.stop_event.set()
-

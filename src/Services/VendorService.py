@@ -66,6 +66,7 @@ class VendorService:
         Starts a background thread to resolve vendor names for any devices with unknown vendors.
         Invokes on_vendor_resolved(device_index, vendor_name) on each resolution.
         """
+
         def worker():
             for idx, dev in enumerate(list(devices)):
                 prefix = self.extract_mac_prefix(dev.mac)
@@ -89,4 +90,3 @@ class VendorService:
         thread = threading.Thread(target=worker, daemon=True)
         thread.start()
         return thread
-

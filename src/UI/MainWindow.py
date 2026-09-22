@@ -30,7 +30,9 @@ class MainWindow:
         except Exception:
             pass
         self.root.geometry(self.theme_manager.scaled_geometry(1440, 820))
-        self.root.minsize(self.theme_manager.scaled(1100), self.theme_manager.scaled(700))
+        self.root.minsize(
+            self.theme_manager.scaled(1100), self.theme_manager.scaled(700)
+        )
 
         self.dark_mode_var = tk.BooleanVar(value=False)
         self.ping_monitor_var = tk.BooleanVar(value=False)
@@ -67,7 +69,9 @@ class MainWindow:
         self.top_scroller.grid(row=0, column=0, sticky="ew")
         top_bar = self.top_scroller.content
 
-        ttk.Label(top_bar, text="Host interface").grid(row=0, column=0, sticky="w", pady=4)
+        ttk.Label(top_bar, text="Host interface").grid(
+            row=0, column=0, sticky="w", pady=4
+        )
 
         self.interface_combo = ttk.Combobox(
             top_bar,
@@ -86,7 +90,9 @@ class MainWindow:
             text="Refresh interfaces",
             command=self.callbacks.get("refresh_interfaces", lambda: None),
         )
-        self.refresh_interfaces_btn.grid(row=0, column=2, sticky="w", padx=(0, 16), pady=4)
+        self.refresh_interfaces_btn.grid(
+            row=0, column=2, sticky="w", padx=(0, 16), pady=4
+        )
 
         self.scan_btn = ttk.Button(
             top_bar,
@@ -190,7 +196,9 @@ class MainWindow:
         action_row = ttk.Frame(self.left_panel)
         action_row.grid(row=1, column=0, sticky="ew", pady=(10, 0))
         ttk.Button(
-            action_row, text="Export CSV", command=self.callbacks.get("export_csv", lambda: None)
+            action_row,
+            text="Export CSV",
+            command=self.callbacks.get("export_csv", lambda: None),
         ).pack(side="left")
         self.show_details_btn = ttk.Button(
             action_row,
@@ -200,15 +208,27 @@ class MainWindow:
         )
         self.show_details_btn.pack(side="left", padx=(8, 0))
 
-        self.quick_menu_button = ttk.Menubutton(action_row, text="Quick connect", state="disabled")
+        self.quick_menu_button = ttk.Menubutton(
+            action_row, text="Quick connect", state="disabled"
+        )
         self.quick_menu_button.pack(side="left", padx=(8, 0))
         self.quick_menu = tk.Menu(self.quick_menu_button, tearoff=False)
         self.quick_menu_button["menu"] = self.quick_menu
 
+        self.blink_btn = ttk.Button(
+            action_row,
+            text="Blink Device",
+            state="disabled",
+            command=self.callbacks.get("blink", lambda: None),
+        )
+        self.blink_btn.pack(side="left", padx=(8, 0))
+
         # -------------------------------------------------------------
         # Right Panel: Topology & Notes
         # -------------------------------------------------------------
-        self.topology_title = ttk.Label(self.right_panel, text="Topology View", font="TkHeadingFont")
+        self.topology_title = ttk.Label(
+            self.right_panel, text="Topology View", font="TkHeadingFont"
+        )
         self.topology_title.grid(row=0, column=0, sticky="w")
 
         self.topology_view = TopologyView(
@@ -218,7 +238,9 @@ class MainWindow:
         )
         self.topology_view.grid(row=1, column=0, sticky="nsew", pady=(6, 0))
 
-        self.notes_title = ttk.Label(self.right_panel, text="Notes", font="TkHeadingFont")
+        self.notes_title = ttk.Label(
+            self.right_panel, text="Notes", font="TkHeadingFont"
+        )
         self.notes_title.grid(row=3, column=0, sticky="w", pady=(14, 6))
         self.notes = tk.Text(
             self.right_panel,
@@ -238,7 +260,9 @@ class MainWindow:
 
         # Window resize and sash position handling
         self.root.bind("<Configure>", self._on_root_resize, add="+")
-        self.body_pane.bind("<ButtonRelease-1>", lambda _e: self._save_current_sash_fraction(), add="+")
+        self.body_pane.bind(
+            "<ButtonRelease-1>", lambda _e: self._save_current_sash_fraction(), add="+"
+        )
         self.root.after_idle(self.apply_initial_layout)
 
     def apply_initial_layout(self) -> None:
@@ -270,6 +294,7 @@ class MainWindow:
         self.set_ip_btn.configure(state=button_state)
         self.set_name_btn.configure(state=button_state)
         self.reset_btn.configure(state=button_state)
+        self.blink_btn.configure(state=button_state)
         if hasattr(self, "show_details_btn"):
             self.show_details_btn.configure(state=button_state)
 
@@ -407,15 +432,18 @@ class MainWindow:
         if self.show_topology_var.get():
             self.topology_view.draw()
 
-    def set_quick_actions(self, actions: List[Tuple[str, Callable]], message: str = "Quick connect") -> None:
+    def set_quick_actions(
+        self, actions: List[Tuple[str, Callable]], message: str = "Quick connect"
+    ) -> None:
         self.quick_actions = actions
         self.quick_menu.delete(0, "end")
 
         if actions:
             for label, command in actions:
                 self.quick_menu.add_command(label=label, command=command)
-            self.quick_menu_button.configure(text=f"Quick connect ({len(actions)})", state="normal")
+            self.quick_menu_button.configure(
+                text=f"Quick connect ({len(actions)})", state="normal"
+            )
         else:
             self.quick_menu.add_command(label=message, state="disabled")
             self.quick_menu_button.configure(text=message, state="disabled")
-

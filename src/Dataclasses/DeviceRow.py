@@ -4,6 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class DeviceRow:
     """Domain model representing a PROFINET device row."""
+
     name_of_station: str
     mac: str
     ip: str
@@ -25,7 +26,9 @@ class DeviceRow:
     def dcp_access_normalized(self) -> str:
         if not self.dcp_access:
             return "unknown"
-        access = str(self.dcp_access).strip().lower().replace("-", "_").replace(" ", "_")
+        access = (
+            str(self.dcp_access).strip().lower().replace("-", "_").replace(" ", "_")
+        )
         if access in {"read_only", "readonly", "ro"}:
             return "read_only"
         if access in {"read_write", "readwrite", "rw"}:

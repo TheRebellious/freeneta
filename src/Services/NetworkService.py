@@ -24,17 +24,38 @@ class NetworkService:
 
         def sort_key(item):
             name = item[0].lower()
-            ethernet_score = 0 if any(
-                x in name for x in ["ethernet", "eth", "enp", "eno", "ens"]) else 1
-            wireless_score = 1 if any(
-                x in name for x in ["wlan", "wi-fi", "wifi", "wl"]) else 0
-            virtual_score = 1 if any(
-                x in name for x in [
-                    "vmware", "virtual", "vbox", "hyper-v", "loopback",
-                    "bluetooth", "tailscale", "tun", "tap", "docker",
-                    "br-", "virbr", "veth", "wg", "zt"
-                ]
-            ) else 0
+            ethernet_score = (
+                0
+                if any(x in name for x in ["ethernet", "eth", "enp", "eno", "ens"])
+                else 1
+            )
+            wireless_score = (
+                1 if any(x in name for x in ["wlan", "wi-fi", "wifi", "wl"]) else 0
+            )
+            virtual_score = (
+                1
+                if any(
+                    x in name
+                    for x in [
+                        "vmware",
+                        "virtual",
+                        "vbox",
+                        "hyper-v",
+                        "loopback",
+                        "bluetooth",
+                        "tailscale",
+                        "tun",
+                        "tap",
+                        "docker",
+                        "br-",
+                        "virbr",
+                        "veth",
+                        "wg",
+                        "zt",
+                    ]
+                )
+                else 0
+            )
             return (virtual_score, wireless_score, ethernet_score, name)
 
         interfaces.sort(key=sort_key)
@@ -54,8 +75,19 @@ class NetworkService:
             virtual_or_wifi = any(
                 x in lowered
                 for x in [
-                    "tailscale", "tun", "tap", "docker", "br-", "virbr",
-                    "veth", "wg", "zt", "wlan", "wi-fi", "wifi", "wl"
+                    "tailscale",
+                    "tun",
+                    "tap",
+                    "docker",
+                    "br-",
+                    "virbr",
+                    "veth",
+                    "wg",
+                    "zt",
+                    "wlan",
+                    "wi-fi",
+                    "wifi",
+                    "wl",
                 ]
             )
             if not virtual_or_wifi:
@@ -63,4 +95,3 @@ class NetworkService:
                 break
 
         return selected_label
-

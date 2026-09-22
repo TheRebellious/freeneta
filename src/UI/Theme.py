@@ -49,7 +49,12 @@ class ThemeManager:
         self.small_font = self.default_font.copy()
         self.small_font.configure(size=9)
 
-        for font_name in ("TkMenuFont", "TkCaptionFont", "TkSmallCaptionFont", "TkTooltipFont"):
+        for font_name in (
+            "TkMenuFont",
+            "TkCaptionFont",
+            "TkSmallCaptionFont",
+            "TkTooltipFont",
+        ):
             try:
                 tkfont.nametofont(font_name).configure(size=10)
             except tk.TclError:
@@ -113,10 +118,16 @@ class ThemeManager:
             style.theme_use("clam")
             style.configure("TFrame", background=c["bg"])
             style.configure("TPanedwindow", background=c["bg"])
-            style.configure("TLabel", background=c["bg"], foreground=c["text"], font="TkDefaultFont")
+            style.configure(
+                "TLabel", background=c["bg"], foreground=c["text"], font="TkDefaultFont"
+            )
             style.configure("TButton", padding=(10, 6), font="TkDefaultFont")
             style.configure(
-                "TMenubutton", padding=(10, 6), background=c["panel"], foreground=c["text"], font="TkDefaultFont"
+                "TMenubutton",
+                padding=(10, 6),
+                background=c["panel"],
+                foreground=c["text"],
+                font="TkDefaultFont",
             )
             style.map(
                 "TMenubutton",
@@ -124,7 +135,10 @@ class ThemeManager:
                 foreground=[("active", c["text"])],
             )
             style.configure(
-                "TCheckbutton", background=c["bg"], foreground=c["text"], font="TkDefaultFont"
+                "TCheckbutton",
+                background=c["bg"],
+                foreground=c["text"],
+                font="TkDefaultFont",
             )
             style.map(
                 "TCheckbutton",
@@ -154,8 +168,7 @@ class ThemeManager:
                 font="TkHeadingFont",
             )
             style.map(
-                "Treeview.Heading",
-                relief=[("active", "raised"), ("pressed", "sunken")]
+                "Treeview.Heading", relief=[("active", "raised"), ("pressed", "sunken")]
             )
             style.map(
                 "Treeview",

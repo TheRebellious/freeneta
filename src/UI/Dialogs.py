@@ -92,6 +92,7 @@ class Dialogs:
         initial_ip: str,
         initial_netmask: str,
         initial_gateway: str,
+        initial_persistent: bool,
     ) -> Optional[Tuple[str, str, str]]:
         """Displays a modal dialog to configure IP address, subnet mask, and gateway."""
         dialog = tk.Toplevel(parent)
@@ -112,18 +113,24 @@ class Dialogs:
         ttk.Label(frame, text="IP address").grid(row=1, column=0, sticky="w", pady=4)
         ttk.Label(frame, text="Subnet mask").grid(row=2, column=0, sticky="w", pady=4)
         ttk.Label(frame, text="Gateway").grid(row=3, column=0, sticky="w", pady=4)
+        ttk.Label(frame, text="Persistent").grid(row=4, column=0, sticky="w", pady=4)
 
         ip_var = tk.StringVar(value=initial_ip)
         netmask_var = tk.StringVar(value=initial_netmask)
         gateway_var = tk.StringVar(value=initial_gateway)
+        persistent_var = tk.BooleanVar(value=initial_persistent)
 
         ip_entry = ttk.Entry(frame, textvariable=ip_var, width=22)
         netmask_entry = ttk.Entry(frame, textvariable=netmask_var, width=22)
         gateway_entry = ttk.Entry(frame, textvariable=gateway_var, width=22)
+        persistent_check = ttk.Checkbutton(
+            frame, text="Store permanently", variable=persistent_var
+        )
 
         ip_entry.grid(row=1, column=1, sticky="ew", padx=(12, 0), pady=4)
         netmask_entry.grid(row=2, column=1, sticky="ew", padx=(12, 0), pady=4)
         gateway_entry.grid(row=3, column=1, sticky="ew", padx=(12, 0), pady=4)
+        persistent_check.grid(row=4, column=1, sticky="ew", padx=(12, 0), pady=4)
 
         result = {"value": None}
 
@@ -132,6 +139,7 @@ class Dialogs:
                 ip_var.get().strip(),
                 netmask_var.get().strip(),
                 gateway_var.get().strip(),
+                persistent_var.get(),
             )
             dialog.destroy()
 
@@ -139,7 +147,7 @@ class Dialogs:
             dialog.destroy()
 
         btns = ttk.Frame(frame)
-        btns.grid(row=4, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        btns.grid(row=5, column=0, columnspan=2, sticky="e", pady=(12, 0))
         ttk.Button(btns, text="Cancel", command=cancel).pack(side="right")
         ttk.Button(btns, text="Apply", command=submit).pack(side="right", padx=(0, 8))
 

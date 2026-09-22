@@ -11,27 +11,30 @@ class ExportService:
         """Exports the list of devices to a CSV file."""
         with open(file_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow([
-                "station_name",
-                "mac",
-                "vendor",
-                "ip",
-                "ping_status",
-                "ping_ms",
-                "netmask",
-                "gateway",
-                "family",
-            ])
+            writer.writerow(
+                [
+                    "station_name",
+                    "mac",
+                    "vendor",
+                    "ip",
+                    "ping_status",
+                    "ping_ms",
+                    "netmask",
+                    "gateway",
+                    "family",
+                ]
+            )
             for dev in devices:
-                writer.writerow([
-                    dev.name_of_station,
-                    dev.mac,
-                    dev.vendor,
-                    dev.ip,
-                    dev.ping_status,
-                    dev.ping_ms,
-                    dev.netmask,
-                    dev.gateway,
-                    dev.family,
-                ])
-
+                writer.writerow(
+                    [
+                        dev.name_of_station,
+                        dev.mac,
+                        dev.vendor,
+                        dev.ip,
+                        dev.ping_status,
+                        dev.ping_ms,
+                        dev.netmask,
+                        dev.gateway,
+                        dev.family,
+                    ]
+                )
