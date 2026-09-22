@@ -8,7 +8,7 @@ MAIN := src/freeneta.py
 DIST := dist
 BUILD := build
 
-.PHONY: all run build compile clean clean-cache install
+.PHONY: all run build compile clean clean-cache install format
 
 all: run
 
@@ -37,6 +37,10 @@ clean: clean-cache
 clean-cache:
 	$(PYTHON) -c "import os, shutil; [shutil.rmtree(os.path.join(root, d)) for root, dirs, files in os.walk('.') for d in dirs if d == '__pycache__']"
 
-# Install PyInstaller
+# Install PyInstaller and black
 install:
-	$(PIP) install pyinstaller
+	$(PIP) install pyinstaller black
+
+# Format source code with black
+format:
+	$(PYTHON) -m black src/

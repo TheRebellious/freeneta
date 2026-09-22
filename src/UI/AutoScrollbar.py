@@ -12,4 +12,3 @@ class AutoScrollbar(ttk.Scrollbar):
             if not self.winfo_ismapped():
                 self.grid()
         super().set(first, last)
-

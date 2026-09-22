@@ -25,7 +25,9 @@ class ConnectionService:
             return False
 
     @classmethod
-    def scan_standard_ports(cls, ip: str, timeout: float = 0.6) -> List[Tuple[int, str]]:
+    def scan_standard_ports(
+        cls, ip: str, timeout: float = 0.6
+    ) -> List[Tuple[int, str]]:
         """Scans standard device management ports (80, 443, 22)."""
         open_ports = []
         for port in (80, 443, 22):
@@ -49,11 +51,15 @@ class ConnectionService:
             if shutil.which("wt"):
                 subprocess.Popen(["wt", "new-tab", "ssh", target])
             elif shutil.which("ssh"):
-                subprocess.Popen(["cmd", "/c", "start", "", "cmd", "/k", f"ssh {target}"])
+                subprocess.Popen(
+                    ["cmd", "/c", "start", "", "cmd", "/k", f"ssh {target}"]
+                )
             elif shutil.which("putty"):
                 subprocess.Popen(["putty", "-ssh", target])
             else:
-                raise RuntimeError("No SSH client found. Install OpenSSH, Windows Terminal, or PuTTY.")
+                raise RuntimeError(
+                    "No SSH client found. Install OpenSSH, Windows Terminal, or PuTTY."
+                )
         else:
             terminal_cmds = [
                 ["x-terminal-emulator", "-e", f"ssh {target}"],
@@ -66,4 +72,3 @@ class ConnectionService:
                     subprocess.Popen(cmd)
                     return
             raise RuntimeError("No supported terminal emulator found to launch SSH.")
-

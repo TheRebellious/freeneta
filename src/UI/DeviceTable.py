@@ -87,8 +87,12 @@ class DeviceTableView(ttk.Frame):
                 stretch=col in self.STRETCHABLE_COLUMNS,
             )
 
-        self.tree_scroll_y = AutoScrollbar(self, orient="vertical", command=self.tree.yview)
-        self.tree_scroll_x = AutoScrollbar(self, orient="horizontal", command=self.tree.xview)
+        self.tree_scroll_y = AutoScrollbar(
+            self, orient="vertical", command=self.tree.yview
+        )
+        self.tree_scroll_x = AutoScrollbar(
+            self, orient="horizontal", command=self.tree.xview
+        )
         self.tree.configure(
             yscrollcommand=self.tree_scroll_y.set,
             xscrollcommand=self.tree_scroll_x.set,
@@ -99,14 +103,28 @@ class DeviceTableView(ttk.Frame):
         self.tree_scroll_x.grid(row=1, column=0, sticky="ew")
 
         self.tree.bind("<<TreeviewSelect>>", self._on_tree_select)
-        self.tree.bind("<ButtonPress-1>", self._remember_column_widths_before_drag, add="+")
+        self.tree.bind(
+            "<ButtonPress-1>", self._remember_column_widths_before_drag, add="+"
+        )
         self.tree.bind("<ButtonRelease-1>", self._detect_user_column_resize, add="+")
-        self.tree.bind("<Double-1>", self._autosize_column_from_header_doubleclick, add="+")
+        self.tree.bind(
+            "<Double-1>", self._autosize_column_from_header_doubleclick, add="+"
+        )
 
         self.update_tree_columns()
 
-    def build_columns_menu(self, menu: tk.Menu, on_columns_changed: Optional[Callable[[], None]] = None) -> None:
-        ordered_columns = ("name", "mac", "vendor", "ip", "netmask", "gateway", "family")
+    def build_columns_menu(
+        self, menu: tk.Menu, on_columns_changed: Optional[Callable[[], None]] = None
+    ) -> None:
+        ordered_columns = (
+            "name",
+            "mac",
+            "vendor",
+            "ip",
+            "netmask",
+            "gateway",
+            "family",
+        )
         for col in ordered_columns:
             menu.add_checkbutton(
                 label=self.HEADINGS[col],
@@ -114,7 +132,9 @@ class DeviceTableView(ttk.Frame):
                 command=lambda c=col: self._toggle_column(c, on_columns_changed),
             )
 
-    def _toggle_column(self, column_key: str, callback: Optional[Callable[[], None]]) -> None:
+    def _toggle_column(
+        self, column_key: str, callback: Optional[Callable[[], None]]
+    ) -> None:
         enabled = [key for key, var in self.column_vars.items() if var.get()]
         if not enabled:
             self.column_vars[column_key].set(True)
@@ -191,7 +211,11 @@ class DeviceTableView(ttk.Frame):
 
     def autosize_tree_columns(self, only_visible: bool = True, columns=None) -> None:
         if columns is None:
-            display_cols = self._tree_display_columns() if only_visible else tuple(self.tree["columns"])
+            display_cols = (
+                self._tree_display_columns()
+                if only_visible
+                else tuple(self.tree["columns"])
+            )
         else:
             display_cols = tuple(columns)
 
@@ -224,7 +248,9 @@ class DeviceTableView(ttk.Frame):
 
             best_width = max(min_col_width, min(best_width, max_col_width))
             stretch = bool(self.tree.column(col, "stretch"))
-            self.tree.column(col, width=best_width, minwidth=min_col_width, stretch=stretch)
+            self.tree.column(
+                col, width=best_width, minwidth=min_col_width, stretch=stretch
+            )
 
     def _device_values(self, dev: DeviceRow) -> tuple:
         return (
@@ -297,4 +323,3 @@ class DeviceTableView(ttk.Frame):
     def _on_tree_select(self, _event=None) -> None:
         if self.on_selection_changed:
             self.on_selection_changed(self.get_selected_device())
-

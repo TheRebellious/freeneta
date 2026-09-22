@@ -39,7 +39,9 @@ class TopologyView(ttk.Frame):
     def set_colors(self, bg: str, border: str) -> None:
         self.canvas.configure(bg=bg, highlightbackground=border)
 
-    def set_devices(self, devices: List[DeviceRow], selected_index: Optional[int] = None) -> None:
+    def set_devices(
+        self, devices: List[DeviceRow], selected_index: Optional[int] = None
+    ) -> None:
         self.devices = devices
         self.selected_index = selected_index
         self.draw()
@@ -99,7 +101,10 @@ class TopologyView(ttk.Frame):
         node_half_h = self.theme_manager.scaled(42)
         status_dot = self.theme_manager.scaled(8)
         top_anchor_y = pc_bottom
-        y = min(max(self.theme_manager.scaled(210), h * 0.42), h - self.theme_manager.scaled(90))
+        y = min(
+            max(self.theme_manager.scaled(210), h * 0.42),
+            h - self.theme_manager.scaled(90),
+        )
 
         for idx, dev in enumerate(self.devices, start=1):
             x = spacing * idx
@@ -156,4 +161,3 @@ class TopologyView(ttk.Frame):
         idx = self.canvas_item_to_index.get(item[0])
         if idx is not None and self.on_device_clicked:
             self.on_device_clicked(idx)
-

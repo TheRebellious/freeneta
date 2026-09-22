@@ -43,4 +43,3 @@ Vendor lookup note:
 - Uses local cache and an online OUI lookup fallback
 - If the machine has no internet connection, vendor may remain Unknown
 """
-
